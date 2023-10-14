@@ -1,3 +1,5 @@
+using System.Text;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotnetApi.Controllers;
@@ -18,28 +20,95 @@ public class UserController : ControllerBase
         _dapper = new(configuration);
         // By running a request for this controller, the controller was created, therefore the contructor gave us access to configuration.
         Console.WriteLine(configuration.GetConnectionString("DefaultConnection"));
-
     }
 
-    [HttpGet("TestConnection")]
-    public DateTime TestConnection()
-    {
-        return _dapper.LoadSingleData<DateTime>("SELECT GETDATE()");
-    }
-
-    [HttpGet("GetUsers/{testValue}")]
+    [HttpGet("GetUsers")]
     // public IEnumerable<User> GetUsers()
-    public string[] GetUsers(string testValue)
+    public IEnumerable<User> GetUsers()
     {
+        string SQLquery = @"
+        SELECT [UserId],
+        [FirstName],
+        [LastName],
+        [Email],
+        [Gender],
+        [Active] FROM TutorialAppSchema.Users
+        ";
 
-        return new string[] { "Hello", "Wes", "Test", testValue };
-        // return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-        // {
-        //     Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-        //     TemperatureC = Random.Shared.Next(-20, 55),
-        //     Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-        // })
-        // .ToArray();
+        IEnumerable<User> users = _dapper.LoadData<User>(SQLquery);
 
+        return users;
+    }
+
+    [HttpGet("GetUser/{userId}")]
+    public User GetUser(int userId)
+    {
+        string SQLquery = @"
+        SELECT [UserId],
+        [FirstName],
+        [LastName],
+        [Email],
+        [Gender],
+        [Active] FROM TutorialAppSchema.Users
+        WHERE UserId =
+        ";
+
+        StringBuilder sb = new(SQLquery + userId.ToString());
+        User user = _dapper.LoadSingleData<User>(sb.ToString());
+
+        return user;
+    }
+
+    [HttpPut("EditUser")]
+    // IActionResult when we are not returning actual data but we want to notify the dev if it was a successful request
+    public IActionResult EditUser(User user)
+    {
+        int IsUserActive = user.Active ? 1 : 0;
+
+        string SQLquery = @"
+        UPDATE TutorialAppSchema.Users
+         SET [FirstName] = '" + user.FirstName +
+            "', [LastName] = '" + user.LastName +
+            "', [Email] = '" + user.Email +
+            "', [Gender] = '" + user.Gender +
+            "', [Active] = '" + IsUserActive +
+         "' WHERE UserId = " + user.UserId;
+
+        if (_dapper.ExecuteSql(SQLquery))
+        {
+            // OK --> Comes from ControllerBase: 200 response
+            return Ok();
+        }
+
+        throw new Exception("Failed to update user");
+    }
+
+    [HttpPost("AddUser")]
+    public IActionResult AddUser(User user)
+    {
+        int IsUserActive = user.Active ? 1 : 0;
+
+        string SQLquery = @"INSERT INTO TutorialAppSchema.Users(
+                [FirstName],
+                [LastName],
+                [Email],
+                [Gender],
+                [Active]
+            ) VALUES (" +
+                "'" + user.FirstName +
+                "', '" + user.LastName +
+                "', '" + user.Email +
+                "', '" + user.Gender +
+                "', '" + IsUserActive +
+            "')";
+
+        Console.WriteLine(SQLquery);
+
+        if (_dapper.ExecuteSql(SQLquery))
+        {
+            return Ok();
+        }
+
+        throw new Exception("Failed to Add user");
     }
 }
