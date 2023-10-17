@@ -58,6 +58,18 @@
             "microsoft.data.sqlclient": {
               "target": "Package",
               "version": "[5.1.1, )"
+            },
+            "microsoft.entityframeworkcore": {
+              "target": "Package",
+              "version": "[7.0.12, )"
+            },
+            "microsoft.entityframeworkcore.relational": {
+              "target": "Package",
+              "version": "[7.0.12, )"
+            },
+            "microsoft.entityframeworkcore.sqlserver": {
+              "target": "Package",
+              "version": "[7.0.12, )"
             }
           },
           "imports": [

@@ -1,14 +1,4 @@
 namespace DotnetApi.Models
 {
-    public partial class UserJobInfo
-    {
-        public string JobTitle { get; set; }
-        public string Department { get; set; }
-
-        public UserJobInfo()
-        {
-            JobTitle ??= "";
-            Department ??= "";
-        }
-    }
+    public partial record UserJobInfo(int UserId, string JobTitle = "", string Department = "") { }
 }

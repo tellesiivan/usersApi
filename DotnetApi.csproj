@@ -11,6 +11,9 @@
     <PackageReference Include="dapper" Version="2.1.4" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.11" />
     <PackageReference Include="microsoft.data.sqlclient" Version="5.1.1" />
+    <PackageReference Include="microsoft.entityframeworkcore" Version="7.0.12" />
+    <PackageReference Include="microsoft.entityframeworkcore.relational" Version="7.0.12" />
+    <PackageReference Include="microsoft.entityframeworkcore.sqlserver" Version="7.0.12" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
