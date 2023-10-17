@@ -1,4 +1,4 @@
-namespace DotnetApi
+namespace DotnetApi.Models
 {
     public partial class UserJobInfo
     {

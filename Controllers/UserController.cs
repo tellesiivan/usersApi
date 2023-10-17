@@ -1,5 +1,7 @@
 using System.Text;
-using Microsoft.AspNetCore.Http.HttpResults;
+using DotnetApi.Data;
+using DotnetApi.Dtos;
+using DotnetApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotnetApi.Controllers;
@@ -10,7 +12,6 @@ namespace DotnetApi.Controllers;
 // Would be the same as writting 'User' --> Name before `Controller` of the class
 // public class UserController --> User
 [Route("[controller]")]
-
 public class UserController : ControllerBase
 {
     readonly DataContextDapper _dapper;
@@ -26,7 +27,8 @@ public class UserController : ControllerBase
     // public IEnumerable<User> GetUsers()
     public IEnumerable<User> GetUsers()
     {
-        string SQLquery = @"
+        string SQLquery =
+            @"
         SELECT [UserId],
         [FirstName],
         [LastName],
@@ -43,7 +45,8 @@ public class UserController : ControllerBase
     [HttpGet("GetUser/{userId}")]
     public User GetUser(int userId)
     {
-        string SQLquery = @"
+        string SQLquery =
+            @"
         SELECT [UserId],
         [FirstName],
         [LastName],
@@ -65,14 +68,21 @@ public class UserController : ControllerBase
     {
         int IsUserActive = user.Active ? 1 : 0;
 
-        string SQLquery = @"
+        string SQLquery =
+            @"
         UPDATE TutorialAppSchema.Users
-         SET [FirstName] = '" + user.FirstName +
-            "', [LastName] = '" + user.LastName +
-            "', [Email] = '" + user.Email +
-            "', [Gender] = '" + user.Gender +
-            "', [Active] = '" + IsUserActive +
-         "' WHERE UserId = " + user.UserId;
+         SET [FirstName] = '"
+            + user.FirstName
+            + "', [LastName] = '"
+            + user.LastName
+            + "', [Email] = '"
+            + user.Email
+            + "', [Gender] = '"
+            + user.Gender
+            + "', [Active] = '"
+            + IsUserActive
+            + "' WHERE UserId = "
+            + user.UserId;
 
         if (_dapper.ExecuteSql(SQLquery))
         {
@@ -84,23 +94,29 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("AddUser")]
-    public IActionResult AddUser(User user)
+    public IActionResult AddUser(UserDto user)
     {
         int IsUserActive = user.Active ? 1 : 0;
 
-        string SQLquery = @"INSERT INTO TutorialAppSchema.Users(
+        string SQLquery =
+            @"INSERT INTO TutorialAppSchema.Users(
                 [FirstName],
                 [LastName],
                 [Email],
                 [Gender],
                 [Active]
-            ) VALUES (" +
-                "'" + user.FirstName +
-                "', '" + user.LastName +
-                "', '" + user.Email +
-                "', '" + user.Gender +
-                "', '" + IsUserActive +
-            "')";
+            ) VALUES ("
+            + "'"
+            + user.FirstName
+            + "', '"
+            + user.LastName
+            + "', '"
+            + user.Email
+            + "', '"
+            + user.Gender
+            + "', '"
+            + IsUserActive
+            + "')";
 
         Console.WriteLine(SQLquery);
 
@@ -110,5 +126,21 @@ public class UserController : ControllerBase
         }
 
         throw new Exception("Failed to Add user");
+    }
+
+    // DELETE
+    [HttpDelete("Delete/{userId}")]
+    public IActionResult DeleteUser(int userId)
+    {
+        string SQLquery =
+            @"
+        DELETE FROM TutorialAppSchema.Users WHERE UserId = " + userId.ToString();
+
+        if (_dapper.ExecuteSql(SQLquery))
+        {
+            return Ok();
+        }
+
+        throw new Exception("Unable to delete user");
     }
 }
