@@ -23,7 +23,7 @@ public class UserJobInfoEFController : ControllerBase
     }
 
     [HttpGet("Summary/{userId}")]
-    public UserDto GetUserSummary(int userId)
+    public UserSummary GetUserSummary(int userId)
     {
         // User? dbUser =
         //     entityFramework.Users.Where<User>(user => user.UserId == userId).FirstOrDefault()
@@ -63,6 +63,6 @@ public class UserJobInfoEFController : ControllerBase
                 UserInfo = userInfo
             };
 
-        return userInfo;
+        return userSummary;
     }
 }

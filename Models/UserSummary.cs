@@ -4,7 +4,7 @@ namespace DotnetApi.Models;
 
 public class UserSummary
 {
-    public int UserId;
-    public required UserDto UserInfo;
-    public required UserJobInfoDto JobInfo;
+    public int UserId { get; set; }
+    public required UserDto UserInfo { get; set; }
+    public required UserJobInfoDto JobInfo { get; set; }
 }
