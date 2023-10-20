@@ -46,5 +46,27 @@ namespace DotnetApi.Data
             // Returns the number of rows affected
             return dbConnection.Execute(sqlQuery);
         }
+
+        public bool ExecuteSqlWithParameter(string sqlQuery, List<SqlParameter> sqlParameters)
+        {
+            SqlCommand commandWithParams = new(sqlQuery);
+
+            foreach (SqlParameter parameter in sqlParameters)
+            {
+                commandWithParams.Parameters.Add(parameter);
+            }
+
+            SqlConnection dbConnection = new SqlConnection(
+                _configuration.GetConnectionString("DefaultConnection")
+            );
+            dbConnection.Open();
+            commandWithParams.Connection = dbConnection;
+            // Returns the number of rows affected
+            int rowsAffected = commandWithParams.ExecuteNonQuery();
+
+            dbConnection.Close();
+
+            return rowsAffected > 0;
+        }
     }
 }
