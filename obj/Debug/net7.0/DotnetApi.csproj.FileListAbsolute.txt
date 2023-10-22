@@ -71,3 +71,4 @@
 /Users/tellesivan/Desktop/c#/csharp-dotnet-course/DotnetApi/bin/Debug/net7.0/Microsoft.EntityFrameworkCore.Abstractions.dll
 /Users/tellesivan/Desktop/c#/csharp-dotnet-course/DotnetApi/bin/Debug/net7.0/Microsoft.EntityFrameworkCore.Relational.dll
 /Users/tellesivan/Desktop/c#/csharp-dotnet-course/DotnetApi/bin/Debug/net7.0/Microsoft.EntityFrameworkCore.SqlServer.dll
+/Users/tellesivan/Desktop/c#/csharp-dotnet-course/DotnetApi/bin/Debug/net7.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll

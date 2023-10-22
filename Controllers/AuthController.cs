@@ -1,14 +1,22 @@
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using DotnetApi.Data;
 using DotnetApi.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DotnetApi.Controllers;
 
+// You need to be authorized to access one of the following endpoints unless adding [AllowAnonymous] on top of the endpoint(Login/Register)
+[Authorize]
+[ApiController]
+[Route("[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly DataContextDapper _dapper;
@@ -20,6 +28,7 @@ public class AuthController : ControllerBase
         _configuration = config;
     }
 
+    [AllowAnonymous]
     [HttpPost("Register")]
     public IActionResult Register(UserForRegistrationDto userForRegistration)
     {
@@ -106,6 +115,7 @@ public class AuthController : ControllerBase
         return Ok();
     }
 
+    [AllowAnonymous]
     [HttpPost("Login")]
     public IActionResult Login(UserForLoginDto userForLogin)
     {
@@ -133,7 +143,34 @@ public class AuthController : ControllerBase
             }
         }
 
-        return Ok();
+        string userIdSql =
+            @"
+                SELECT UserId FROM TutorialAppSchema.Users WHERE Email = '"
+            + userForLogin.Email
+            + "'";
+
+        int userId = _dapper.LoadSingleData<int>(userIdSql);
+
+        string JwtToken = CreateToken(userId);
+
+        // return a key value pair as the response
+        Dictionary<string, string> response = new() { { "token", JwtToken } };
+
+        return Ok(response);
+    }
+
+    [HttpGet("RefreshToken")]
+    public string RefreshToken()
+    {
+        string sqlGetUserId =
+            @"
+                SELECT UserId FROM TutorialAppSchema.Users WHERE UserId = '"
+            + User.FindFirst("userId")?.Value
+            + "'";
+
+        int userId = _dapper.LoadSingleData<int>(sqlGetUserId);
+
+        return CreateToken(userId);
     }
 
     private byte[] GetPasswordHash(string password, byte[] passwordSalt)
@@ -152,5 +189,38 @@ public class AuthController : ControllerBase
         );
 
         return passwordHash;
+    }
+
+    public string CreateToken(int userId)
+    {
+        // claim in a token --> piece of info in a token
+        Claim[] claims = new Claim[] { new("userId", userId.ToString()) };
+
+        // todo: find out why the test sample key returns an empty string
+        string tokenKeyString =
+            _configuration.GetSection("AppSettings.TokenKey").Value
+            ?? "38128ewqrdbhsw=1293210348-2903hsjiadak";
+
+        SymmetricSecurityKey securityKey =
+            new(Encoding.UTF8.GetBytes("38128ewqrdbhsw=1293210348-2903hsjiadak"));
+
+        SigningCredentials signingCredentials =
+            new(securityKey, SecurityAlgorithms.HmacSha512Signature);
+
+        SecurityTokenDescriptor securityTokenDescriptor =
+            new()
+            {
+                Subject = new ClaimsIdentity(claims),
+                SigningCredentials = signingCredentials,
+                Expires = DateTime.Now.AddDays(1)
+            };
+
+        JwtSecurityTokenHandler tokenHandler = new();
+
+        // Creates a Json Web Token (JWT).
+        SecurityToken securityToken = tokenHandler.CreateToken(securityTokenDescriptor);
+
+        // converts the JWT token into a string, so it can easily be portable
+        return tokenHandler.WriteToken(securityToken);
     }
 }

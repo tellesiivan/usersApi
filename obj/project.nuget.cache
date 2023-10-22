@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "4oe6RzPHYYoFXhoX3ZNrbRUmwgMBV0CPIu/kFLjFx1l3JumkdqRPyxs43VPjXb305SjXyiCLoMwPcZ0b209qzg==",
+  "dgSpecHash": "IP5QHeSuhBTvELKi7lA4TTlKg3FUfz+ytD4r4p+eWTsiyrUisfAP/6WeYqXYr1a9sSY7ZCU3MUCZj20mY9G20A==",
   "success": true,
   "projectFilePath": "/Users/tellesivan/Desktop/c#/csharp-dotnet-course/DotnetApi/DotnetApi.csproj",
   "expectedPackageFiles": [
@@ -8,6 +8,7 @@
     "/Users/tellesivan/.nuget/packages/azure.core/1.25.0/azure.core.1.25.0.nupkg.sha512",
     "/Users/tellesivan/.nuget/packages/azure.identity/1.7.0/azure.identity.1.7.0.nupkg.sha512",
     "/Users/tellesivan/.nuget/packages/dapper/2.1.4/dapper.2.1.4.nupkg.sha512",
+    "/Users/tellesivan/.nuget/packages/microsoft.aspnetcore.authentication.jwtbearer/7.0.12/microsoft.aspnetcore.authentication.jwtbearer.7.0.12.nupkg.sha512",
     "/Users/tellesivan/.nuget/packages/microsoft.aspnetcore.openapi/7.0.11/microsoft.aspnetcore.openapi.7.0.11.nupkg.sha512",
     "/Users/tellesivan/.nuget/packages/microsoft.bcl.asyncinterfaces/1.1.1/microsoft.bcl.asyncinterfaces.1.1.1.nupkg.sha512",
     "/Users/tellesivan/.nuget/packages/microsoft.csharp/4.7.0/microsoft.csharp.4.7.0.nupkg.sha512",

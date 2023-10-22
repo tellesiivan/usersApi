@@ -1,4 +1,7 @@
+using System.Text;
 using DotnetApi.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +56,22 @@ builder.Services.AddCors(
 // Needs to be before the app builds(builder.Build())
 builder.Services.AddScoped<IUserRepsository, UserRepository>();
 
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters()
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                // todo: find out why the test sample key returns an empty string(ref --> AuthController L179)
+                Encoding.UTF8.GetBytes("38128ewqrdbhsw=1293210348-2903hsjiadak")
+            ),
+            ValidateAudience = false,
+            ValidateIssuer = false
+        };
+    });
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -68,6 +87,8 @@ else
     app.UseHttpsRedirection();
 }
 
+// needs to be before UseAuthorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
