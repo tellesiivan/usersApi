@@ -1,15 +1,11 @@
 using System.Data;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
 using DotnetApi.Data;
+using DotnetApi.Helpers;
 using DotnetApi.Dtos;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using Microsoft.IdentityModel.Tokens;
 
 namespace DotnetApi.Controllers;
 
@@ -20,12 +16,12 @@ namespace DotnetApi.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly DataContextDapper _dapper;
-    private readonly IConfiguration _configuration;
+    private readonly AuthHelper _authHelper;
 
     public AuthController(IConfiguration config)
     {
         _dapper = new(config);
-        _configuration = config;
+        _authHelper = new(config);
     }
 
     [AllowAnonymous]
@@ -61,7 +57,10 @@ public class AuthController : ControllerBase
             randomNumberGenerator.GetNonZeroBytes(passwordSalt);
         }
 
-        byte[] passwordHash = GetPasswordHash(userForRegistration.Password, passwordSalt);
+        byte[] passwordHash = _authHelper.GetPasswordHash(
+            userForRegistration.Password,
+            passwordSalt
+        );
 
         // @ --> Means we have a variable
         string sqlAddAuth =
@@ -129,7 +128,7 @@ public class AuthController : ControllerBase
         UserForLoginConfirmationDto userForLoginConfirmation =
             _dapper.LoadSingleData<UserForLoginConfirmationDto>(sqlForHashAndSalt);
 
-        byte[] passwordHash = GetPasswordHash(
+        byte[] passwordHash = _authHelper.GetPasswordHash(
             userForLogin.Password,
             userForLoginConfirmation.PasswordSalt
         );
@@ -151,7 +150,7 @@ public class AuthController : ControllerBase
 
         int userId = _dapper.LoadSingleData<int>(userIdSql);
 
-        string JwtToken = CreateToken(userId);
+        string JwtToken = _authHelper.CreateToken(userId);
 
         // return a key value pair as the response
         Dictionary<string, string> response = new() { { "token", JwtToken } };
@@ -170,57 +169,6 @@ public class AuthController : ControllerBase
 
         int userId = _dapper.LoadSingleData<int>(sqlGetUserId);
 
-        return CreateToken(userId);
-    }
-
-    private byte[] GetPasswordHash(string password, byte[] passwordSalt)
-    {
-        string passwordSaltPlusString =
-            _configuration.GetSection("AppSettings.PasswordKey").Value
-            + Convert.ToBase64String(passwordSalt);
-
-        byte[] passwordHash = KeyDerivation.Pbkdf2(
-            password: password,
-            salt: Encoding.ASCII.GetBytes(passwordSaltPlusString),
-            // SCHEMA OF HOW TO RANDOMIZE
-            prf: KeyDerivationPrf.HMACSHA256,
-            iterationCount: 10000,
-            numBytesRequested: 256 / 8
-        );
-
-        return passwordHash;
-    }
-
-    public string CreateToken(int userId)
-    {
-        // claim in a token --> piece of info in a token
-        Claim[] claims = new Claim[] { new("userId", userId.ToString()) };
-
-        // todo: find out why the test sample key returns an empty string
-        string tokenKeyString =
-            _configuration.GetSection("AppSettings.TokenKey").Value
-            ?? "38128ewqrdbhsw=1293210348-2903hsjiadak";
-
-        SymmetricSecurityKey securityKey =
-            new(Encoding.UTF8.GetBytes("38128ewqrdbhsw=1293210348-2903hsjiadak"));
-
-        SigningCredentials signingCredentials =
-            new(securityKey, SecurityAlgorithms.HmacSha512Signature);
-
-        SecurityTokenDescriptor securityTokenDescriptor =
-            new()
-            {
-                Subject = new ClaimsIdentity(claims),
-                SigningCredentials = signingCredentials,
-                Expires = DateTime.Now.AddDays(1)
-            };
-
-        JwtSecurityTokenHandler tokenHandler = new();
-
-        // Creates a Json Web Token (JWT).
-        SecurityToken securityToken = tokenHandler.CreateToken(securityTokenDescriptor);
-
-        // converts the JWT token into a string, so it can easily be portable
-        return tokenHandler.WriteToken(securityToken);
+        return _authHelper.CreateToken(userId);
     }
 }
