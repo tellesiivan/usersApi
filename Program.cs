@@ -64,8 +64,9 @@ builder.Services
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
-                // todo: find out why the test sample key returns an empty string(ref --> AuthController L179)
-                Encoding.UTF8.GetBytes("38128ewqrdbhsw=1293210348-2903hsjiadak")
+                Encoding.UTF8.GetBytes(
+                    builder.Configuration.GetSection("AppSettings:TokenKey").Value ?? ""
+                )
             ),
             ValidateAudience = false,
             ValidateIssuer = false

@@ -38,13 +38,9 @@ public class AuthHelper
         // claim in a token --> piece of info in a token
         Claim[] claims = new Claim[] { new("userId", userId.ToString()) };
 
-        // todo: find out why the test sample key returns an empty string
-        string tokenKeyString =
-            _config.GetSection("AppSettings.TokenKey").Value
-            ?? "38128ewqrdbhsw=1293210348-2903hsjiadak";
+        string? tokenKeyString = _config.GetSection("AppSettings:TokenKey").Value;
 
-        SymmetricSecurityKey securityKey =
-            new(Encoding.UTF8.GetBytes("38128ewqrdbhsw=1293210348-2903hsjiadak"));
+        SymmetricSecurityKey securityKey = new(Encoding.UTF8.GetBytes(tokenKeyString ?? ""));
 
         SigningCredentials signingCredentials =
             new(securityKey, SecurityAlgorithms.HmacSha512Signature);
