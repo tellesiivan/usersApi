@@ -3,6 +3,7 @@ using DotnetApi.Dtos;
 using DotnetApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DotnetApi.Controllers;
 
@@ -18,41 +19,31 @@ public class PostController : ControllerBase
         _dapper = new(configuration);
     }
 
-    [HttpGet("All")]
-    public IEnumerable<Post> GetAllPosts()
+    [HttpGet("GetPosts")]
+    public IEnumerable<Post> GetPosts(int? userId, int? postId, string? searchQuery)
     {
-        string sql =
-            @"SELECT [PostId],
-                    [UserId],
-                    [PostTitle],
-                    [PostContent],
-                    [PostCreated],
-                    [PostUpdated]
-                FROM TutorialAppSchema.Posts";
+        string sql = @"EXEC TutorialAppSchema.spPost_Get";
+        string parameters = "";
+
+        if (userId is not null)
+        {
+            parameters += ", @UserId= " + userId.ToString();
+        }
+        if (postId is not null)
+        {
+            parameters += ", @PostId= " + postId.ToString();
+        }
+        if (!string.IsNullOrEmpty(searchQuery))
+        {
+            parameters += ", @SearchQuery= '" + searchQuery.ToString() + "'";
+        }
+
+        if (!string.IsNullOrEmpty(parameters))
+        {
+            sql += parameters[1..];
+        }
 
         return _dapper.LoadData<Post>(sql);
-    }
-
-    [HttpGet("PostById/{postId}")]
-    public Post GetPostById(int postId)
-    {
-        string sqlQuery =
-            @"
-            SELECT * FROM TutorialAppSchema.Posts
-         WHERE PostId = " + postId.ToString();
-
-        return _dapper.LoadSingleData<Post>(sqlQuery);
-    }
-
-    [HttpGet("PostByUserId/{id}")]
-    public Post GetPostByUserId(int userId)
-    {
-        string sqlQuery =
-            @"
-            SELECT * FROM TutorialAppSchema.Posts
-         WHERE UserId = " + userId.ToString();
-
-        return _dapper.LoadSingleData<Post>(sqlQuery);
     }
 
     [HttpGet("MyPosts")]
@@ -69,27 +60,6 @@ public class PostController : ControllerBase
                     [PostUpdated]
                 FROM TutorialAppSchema.Posts
                     WHERE UserId = " + userId;
-
-        return _dapper.LoadData<Post>(sql);
-    }
-
-    [HttpGet("Search/{searchQuery}")]
-    public IEnumerable<Post> GetSearchPosts(string searchQuery)
-    {
-        string sql =
-            @"SELECT [PostId],
-                    [UserId],
-                    [PostTitle],
-                    [PostContent],
-                    [PostCreated],
-                    [PostUpdated]
-                FROM TutorialAppSchema.Posts
-                WHERE PostTitle LIKE '%"
-            + searchQuery
-            + @"%'
-                OR PostContent LIKE '%"
-            + searchQuery
-            + "%'";
 
         return _dapper.LoadData<Post>(sql);
     }

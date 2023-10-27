@@ -3,6 +3,7 @@ using DotnetApi.Data;
 using DotnetApi.Dtos;
 using DotnetApi.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DotnetApi.Controllers;
 
@@ -30,12 +31,12 @@ public class UserCompleteController : ControllerBase
         string parameters = "";
 
         // if we pass in a userId, then we filter by the @UserId
-        if (userId != null)
+        if (userId is not null)
         {
             parameters += ", @UserId= " + userId.ToString();
         }
         // if we pass in isActive, then we filter by the @Active=
-        if (isActive != null)
+        if (isActive is not null)
         {
             parameters += ", @Active= " + isActive;
         }
@@ -84,13 +85,16 @@ public class UserCompleteController : ControllerBase
     [HttpDelete("Delete/{userId}")]
     public IActionResult DeleteUser(int userId)
     {
-        string SQLquery =
-            @"
-        DELETE FROM TutorialAppSchema.Users WHERE UserId = " + userId.ToString();
+        string SQLquery = @"EXEC TutorialAppSchema.spUser_Delete @UserId = " + userId.ToString();
 
         if (_dapper.ExecuteSql(SQLquery))
         {
-            return Ok();
+            return Ok(
+                new Dictionary<string, string>()
+                {
+                    { "successMessage", "You have succesfully deleted the user" }
+                }
+            );
         }
 
         throw new Exception("Unable to delete user");
