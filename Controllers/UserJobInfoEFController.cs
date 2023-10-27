@@ -1,5 +1,3 @@
-using System.Text;
-using AutoMapper;
 using DotnetApi.Data;
 using DotnetApi.Dtos;
 using DotnetApi.Models;
