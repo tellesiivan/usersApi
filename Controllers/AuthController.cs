@@ -46,7 +46,7 @@ public class AuthController : ControllerBase
         // Throw an Exception if there is already user/s with that email
         else if (existingUser.Any())
         {
-            throw new Exception("User with this email already exists!");
+            return StatusCode(420, "User with this email already exists!");
         }
 
         byte[] passwordSalt = new byte[128 / 8];
@@ -63,21 +63,25 @@ public class AuthController : ControllerBase
         );
 
         // @ --> Means we have a variable
+        // @NameOfParamInStoreProcedure = @NameOfActualParamValues,
         string sqlAddAuth =
-            @"
-                        INSERT INTO TutorialAppSchema.Auth  ([Email],
-                        [PasswordHash],
-                        [PasswordSalt]) VALUES ('"
-            + userForRegistration.Email
-            + "', @PasswordHash, @PasswordSalt)";
+            @"EXEC TutorialAppSchema.spRegistration_Upsert
+                   @Email = @EmailParam,
+                   @PasswordHash = @PasswordHashParam,
+                   @PasswordSalt = @PasswordSaltParam";
 
         List<SqlParameter> sqlParameters = new();
-        SqlParameter passwordSaltParameter =
-            new("@PasswordSalt", SqlDbType.VarBinary) { Value = passwordSalt };
-        SqlParameter passwordHashParameter =
-            new("@PasswordHash", SqlDbType.VarBinary) { Value = passwordHash };
 
+        SqlParameter EmailParameter =
+            new("@EmailParam", SqlDbType.VarChar) { Value = userForRegistration.Email };
+        sqlParameters.Add(EmailParameter);
+
+        SqlParameter passwordSaltParameter =
+            new("@PasswordSaltParam", SqlDbType.VarBinary) { Value = passwordSalt };
         sqlParameters.Add(passwordSaltParameter);
+
+        SqlParameter passwordHashParameter =
+            new("@PasswordHashParam", SqlDbType.VarBinary) { Value = passwordHash };
         sqlParameters.Add(passwordHashParameter);
 
         bool isSuccessfulRegistration = _dapper.ExecuteSqlWithParameter(sqlAddAuth, sqlParameters);
@@ -87,25 +91,26 @@ public class AuthController : ControllerBase
             throw new Exception("Unable to register user at this time");
         }
 
-        string SqlAddUser =
-            @"INSERT INTO TutorialAppSchema.Users(
-                [FirstName],
-                [LastName],
-                [Email],
-                [Gender],
-                [Active]
-            ) VALUES ("
-            + "'"
+        string sqlAddUser =
+            @"EXEC TutorialAppSchema.spUser_Upsert
+                            @FirstName = '"
             + userForRegistration.FirstName
-            + "', '"
+            + "', @LastName = '"
             + userForRegistration.LastName
-            + "', '"
+            + "', @Email = '"
             + userForRegistration.Email
-            + "', '"
+            + "', @Gender = '"
             + userForRegistration.Gender
-            + "', 1)";
+            + "', @Active = 1"
+            + ", @JobTitle = '"
+            + userForRegistration.JobTitle
+            + "', @Department = '"
+            + userForRegistration.Department
+            + "', @Salary = '"
+            + userForRegistration.Salary
+            + "'";
 
-        if (!_dapper.ExecuteSql(SqlAddUser))
+        if (!_dapper.ExecuteSql(sqlAddUser))
         {
             return StatusCode(423, "Failed to add user");
         }

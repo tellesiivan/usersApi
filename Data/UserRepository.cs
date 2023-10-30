@@ -5,7 +5,7 @@ namespace DotnetApi.Data;
 // inherit IUserRepsository onto UserRepository class to be able to call them and implement each member fromt the declared interface
 public class UserRepository : IUserRepsository
 {
-    DataContextEF _entityFramework;
+    readonly DataContextEF _entityFramework;
 
     public UserRepository(IConfiguration config)
     {

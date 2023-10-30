@@ -3,7 +3,6 @@ using DotnetApi.Dtos;
 using DotnetApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 
 namespace DotnetApi.Controllers;
 
@@ -51,39 +50,31 @@ public class PostController : ControllerBase
     {
         // this.User can be used to refer to the User from ControllerBase if we have multiple User's
         string? userId = this.User.FindFirst("userId")?.Value;
-        string sql =
-            @"SELECT [PostId],
-                    [UserId],
-                    [PostTitle],
-                    [PostContent],
-                    [PostCreated],
-                    [PostUpdated]
-                FROM TutorialAppSchema.Posts
-                    WHERE UserId = " + userId;
+
+        string sql = @"EXEC TutorialAppSchema.spPost_Get @UserId= " + userId;
 
         return _dapper.LoadData<Post>(sql);
     }
 
-    [HttpPost("Post")]
-    public IActionResult AddPost(PostToAddDto postToAdd)
+    [HttpPut("UpsertPost")]
+    public IActionResult UpsertPosts(PostUpsert postToUpsert)
     {
         string? userId = this.User.FindFirst("userId")?.Value;
 
         string sqlString =
-            @"
-            INSERT INTO TutorialAppSchema.Posts(
-            [UserId],
-            [PostTitle],
-            [PostContent],
-            [PostCreated],
-            [PostUpdated]
-            ) VALUES ("
+            @"EXEC TutorialAppSchema.spPosts_Upsert
+                @UserId ="
             + userId
-            + ",'"
-            + postToAdd.PostTitle
-            + "','"
-            + postToAdd.PostContent
-            + "', GETDATE(), GETDATE())";
+            + ", @PostTitle ='"
+            + postToUpsert.PostTitle
+            + "', @PostContent ='"
+            + postToUpsert.PostContent
+            + "'";
+
+        if (postToUpsert.PostId > 0)
+        {
+            sqlString += ", @PostId = " + postToUpsert.PostId;
+        }
 
         if (!_dapper.ExecuteSql(sqlString))
         {
@@ -92,41 +83,15 @@ public class PostController : ControllerBase
         return Ok();
     }
 
-    [HttpPut("Post")]
-    public IActionResult EditPost(PostToEditDto postToEdit)
-    {
-        string? userId = this.User.FindFirst("userId")?.Value;
-
-        string sqlString =
-            @"
-            UPDATE TutorialAppSchema.Posts
-            SET PostContent = '"
-            + postToEdit.PostContent
-            + "', PostTitle = '"
-            + postToEdit.PostTitle
-            + @"', PostUpdated = GETDATE()
-            WHERE PostId = "
-            + postToEdit.PostId.ToString()
-            + "AND UserId = "
-            + userId;
-
-        if (!_dapper.ExecuteSql(sqlString))
-        {
-            return StatusCode(420, "Unable to Edit post!");
-        }
-        return Ok();
-    }
-
-    [HttpDelete("Post/{postId}")]
+    [HttpDelete("Delete")]
     public IActionResult DeletePost(int postId)
     {
         string? userId = this.User.FindFirst("userId")?.Value;
 
         string sqlString =
-            @"DELETE FROM TutorialAppSchema.Posts
-            WHERE PostId = "
+            @"EXEC TutorialAppSchema.spPost_Delete @PostId = "
             + postId.ToString()
-            + "AND UserId = "
+            + ", @UserId = "
             + userId;
 
         if (!_dapper.ExecuteSql(sqlString))
