@@ -49,44 +49,10 @@ public class AuthController : ControllerBase
             return StatusCode(420, "User with this email already exists!");
         }
 
-        byte[] passwordSalt = new byte[128 / 8];
+        UserForLoginDto userForLoginDto =
+            new() { Email = userForRegistration.Email, Password = userForRegistration.Password };
 
-        // random number generator
-        using (RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create())
-        {
-            randomNumberGenerator.GetNonZeroBytes(passwordSalt);
-        }
-
-        byte[] passwordHash = _authHelper.GetPasswordHash(
-            userForRegistration.Password,
-            passwordSalt
-        );
-
-        // @ --> Means we have a variable
-        // @NameOfParamInStoreProcedure = @NameOfActualParamValues,
-        string sqlAddAuth =
-            @"EXEC TutorialAppSchema.spRegistration_Upsert
-                   @Email = @EmailParam,
-                   @PasswordHash = @PasswordHashParam,
-                   @PasswordSalt = @PasswordSaltParam";
-
-        List<SqlParameter> sqlParameters = new();
-
-        SqlParameter EmailParameter =
-            new("@EmailParam", SqlDbType.VarChar) { Value = userForRegistration.Email };
-        sqlParameters.Add(EmailParameter);
-
-        SqlParameter passwordSaltParameter =
-            new("@PasswordSaltParam", SqlDbType.VarBinary) { Value = passwordSalt };
-        sqlParameters.Add(passwordSaltParameter);
-
-        SqlParameter passwordHashParameter =
-            new("@PasswordHashParam", SqlDbType.VarBinary) { Value = passwordHash };
-        sqlParameters.Add(passwordHashParameter);
-
-        bool isSuccessfulRegistration = _dapper.ExecuteSqlWithParameter(sqlAddAuth, sqlParameters);
-
-        if (!isSuccessfulRegistration)
+        if (!_authHelper.SetPassword(userForLoginDto))
         {
             throw new Exception("Unable to register user at this time");
         }
@@ -119,19 +85,36 @@ public class AuthController : ControllerBase
         return Ok();
     }
 
+    [HttpPut("ResetPassword")]
+    public IActionResult ResetPassword(UserForLoginDto userForLogin)
+    {
+        if (!_authHelper.SetPassword(userForLogin))
+        {
+            return StatusCode(412, "Unable to reset password");
+        }
+
+        return Ok();
+    }
+
     [AllowAnonymous]
     [HttpPost("Login")]
     public IActionResult Login(UserForLoginDto userForLogin)
     {
         string sqlForHashAndSalt =
-            @"SELECT [PasswordHash],
-                     [PasswordSalt]
-            FROM TutorialAppSchema.Auth WHERE Email = '"
-            + userForLogin.Email
-            + "'";
+            @"EXEC TutorialAppSchema.spLoginConfirmation_Get
+                @Email = @EmailParam";
+
+        List<SqlParameter> sqlParameters = new();
+
+        SqlParameter EmailParameter =
+            new("@EmailParam", SqlDbType.VarChar) { Value = userForLogin.Email };
+        sqlParameters.Add(EmailParameter);
 
         UserForLoginConfirmationDto userForLoginConfirmation =
-            _dapper.LoadSingleData<UserForLoginConfirmationDto>(sqlForHashAndSalt);
+            _dapper.LoadSingleDataWithParameters<UserForLoginConfirmationDto>(
+                sqlForHashAndSalt,
+                sqlParameters
+            );
 
         byte[] passwordHash = _authHelper.GetPasswordHash(
             userForLogin.Password,

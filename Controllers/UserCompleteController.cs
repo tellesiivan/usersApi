@@ -1,9 +1,6 @@
-using System.Text;
 using DotnetApi.Data;
-using DotnetApi.Dtos;
 using DotnetApi.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 
 namespace DotnetApi.Controllers;
 

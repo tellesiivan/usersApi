@@ -56,9 +56,8 @@ namespace DotnetApi.Data
                 commandWithParams.Parameters.Add(parameter);
             }
 
-            SqlConnection dbConnection = new(
-                _configuration.GetConnectionString("DefaultConnection")
-            );
+            SqlConnection dbConnection =
+                new(_configuration.GetConnectionString("DefaultConnection"));
             dbConnection.Open();
             commandWithParams.Connection = dbConnection;
             // Returns the number of rows affected
@@ -67,6 +66,25 @@ namespace DotnetApi.Data
             dbConnection.Close();
 
             return rowsAffected > 0;
+        }
+
+        public IEnumerable<T> LoadDataWithParameters<T>(
+            string sqlQuery,
+            List<SqlParameter> sqlParameters
+        )
+        {
+            IDbConnection dbConnection = new SqlConnection(
+                _configuration.GetConnectionString("DefaultConnection")
+            );
+            return dbConnection.Query<T>(sqlQuery, sqlParameters);
+        }
+
+        public T LoadSingleDataWithParameters<T>(string sqlQuery, List<SqlParameter> sqlParameters)
+        {
+            IDbConnection dbConnection = new SqlConnection(
+                _configuration.GetConnectionString("DefaultConnection")
+            );
+            return dbConnection.QuerySingle<T>(sqlQuery, sqlParameters);
         }
     }
 }
