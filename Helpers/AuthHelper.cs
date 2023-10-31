@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Dapper;
 using DotnetApi.Data;
 using DotnetApi.Dtos;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
@@ -89,21 +90,29 @@ public class AuthHelper
                    @PasswordHash = @PasswordHashParam,
                    @PasswordSalt = @PasswordSaltParam";
 
-        List<SqlParameter> sqlParameters = new();
+        // List<SqlParameter> sqlParameters = new();
 
-        SqlParameter EmailParameter =
-            new("@EmailParam", SqlDbType.VarChar) { Value = userForSetPassword.Email };
-        sqlParameters.Add(EmailParameter);
+        // SqlParameter EmailParameter =
+        //     new("@EmailParam", SqlDbType.VarChar) { Value = userForSetPassword.Email };
+        // sqlParameters.Add(EmailParameter);
 
-        SqlParameter passwordSaltParameter =
-            new("@PasswordSaltParam", SqlDbType.VarBinary) { Value = passwordSalt };
-        sqlParameters.Add(passwordSaltParameter);
+        // SqlParameter passwordSaltParameter =
+        //     new("@PasswordSaltParam", SqlDbType.VarBinary) { Value = passwordSalt };
+        // sqlParameters.Add(passwordSaltParameter);
 
-        SqlParameter passwordHashParameter =
-            new("@PasswordHashParam", SqlDbType.VarBinary) { Value = passwordHash };
-        sqlParameters.Add(passwordHashParameter);
+        // SqlParameter passwordHashParameter =
+        //     new("@PasswordHashParam", SqlDbType.VarBinary) { Value = passwordHash };
+        // sqlParameters.Add(passwordHashParameter);
 
-        bool isSuccessfulRegistration = _dapper.ExecuteSqlWithParameter(sqlAddAuth, sqlParameters);
+        DynamicParameters dynamicParameters = new();
+        dynamicParameters.Add("@EmailParam", userForSetPassword.Email, DbType.String);
+        dynamicParameters.Add("@PasswordSaltParam", passwordSalt, DbType.Binary);
+        dynamicParameters.Add("@PasswordHashParam", passwordHash, DbType.Binary);
+
+        bool isSuccessfulRegistration = _dapper.ExecuteSqlWithParameter(
+            sqlAddAuth,
+            dynamicParameters
+        );
 
         return isSuccessfulRegistration;
     }

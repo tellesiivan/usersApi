@@ -1,10 +1,15 @@
+using System.Data;
+using Dapper;
 using DotnetApi.Data;
+using DotnetApi.Helpers;
 using DotnetApi.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotnetApi.Controllers;
 
 // tells c-sharpe that this is a controller and needs to be mapped into our endpoints
+[Authorize]
 [ApiController]
 // Tells us where we want to look at this controller
 // Would be the same as writting 'User' --> Name before `Controller` of the class
@@ -13,10 +18,12 @@ namespace DotnetApi.Controllers;
 public class UserCompleteController : ControllerBase
 {
     readonly DataContextDapper _dapper;
+    private readonly ReusableSql _reusableSQL;
 
     public UserCompleteController(IConfiguration configuration)
     {
         _dapper = new(configuration);
+        _reusableSQL = new(configuration);
         // By running a request for this controller, the controller was created, therefore the contructor gave us access to configuration.
         Console.WriteLine(configuration.GetConnectionString("DefaultConnection"));
     }
@@ -25,66 +32,57 @@ public class UserCompleteController : ControllerBase
     public IEnumerable<UserComplete> GetUsers(int? userId, bool? isActive)
     {
         string SQLquery = @"EXEC TutorialAppSchema.spUsers_Get ";
-        string parameters = "";
+        DynamicParameters dynamicParameters = new();
+
+        string stringParameters = "";
 
         // if we pass in a userId, then we filter by the @UserId
         if (userId is not null)
         {
-            parameters += ", @UserId= " + userId.ToString();
+            stringParameters += ", @UserId=@UserIdParam";
+            dynamicParameters.Add("@UserIdParam", userId, DbType.Int32);
         }
         // if we pass in isActive, then we filter by the @Active=
         if (isActive is not null)
         {
-            parameters += ", @Active= " + isActive;
+            stringParameters += ", @Active=@ActiveParam";
+            dynamicParameters.Add("@ActiveParam", isActive, DbType.Boolean);
         }
 
-        SQLquery += parameters[1..];
+        if (stringParameters.Any())
+        {
+            SQLquery += stringParameters[1..];
+        }
 
-        IEnumerable<UserComplete> users = _dapper.LoadData<UserComplete>(SQLquery);
+        IEnumerable<UserComplete> users = _dapper.LoadDataWithParameters<UserComplete>(
+            SQLquery,
+            dynamicParameters
+        );
+
         return users;
     }
 
     [HttpPut("UpsertUser")]
-    // IActionResult when we are not returning actual data but we want to notify the dev if it was a successful request
     public IActionResult UpsertUser(UserComplete user)
     {
-        string SQLquery =
-            @"EXEC TutorialAppSchema.spUser_UpSert
-         @FirstName = '"
-            + user.FirstName
-            + "', @LastName = '"
-            + user.LastName
-            + "', @Email = '"
-            + user.Email
-            + "', @Gender = '"
-            + user.Gender
-            + "', @JobTitle = '"
-            + user.JobTitle
-            + "', @Department = '"
-            + user.Department
-            + "', @Salary = '"
-            + user.Salary
-            + "', @Active = '"
-            + user.Active
-            + "', @UserId = "
-            + user.UserId;
-
-        if (_dapper.ExecuteSql(SQLquery))
+        if (_reusableSQL.UpsertUser(user))
         {
-            // OK --> Comes from ControllerBase: 200 response
             return Ok();
         }
 
-        return StatusCode(412, "Failed to Update OR Add user");
+        throw new Exception("Failed to Update User");
     }
 
     // DELETE
     [HttpDelete("Delete/{userId}")]
     public IActionResult DeleteUser(int userId)
     {
-        string SQLquery = @"EXEC TutorialAppSchema.spUser_Delete @UserId = " + userId.ToString();
+        string SQLquery = @"EXEC TutorialAppSchema.spUser_Delete @UserId=@UserIdParam";
 
-        if (_dapper.ExecuteSql(SQLquery))
+        DynamicParameters dynamicParameters = new();
+        dynamicParameters.Add("@UserIdParam", userId, DbType.Int32);
+
+        if (_dapper.ExecuteSqlWithParameter(SQLquery, dynamicParameters))
         {
             return Ok(
                 new Dictionary<string, string>()

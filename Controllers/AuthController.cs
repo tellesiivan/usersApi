@@ -1,11 +1,12 @@
 using System.Data;
-using System.Security.Cryptography;
 using DotnetApi.Data;
 using DotnetApi.Helpers;
 using DotnetApi.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
+using Dapper;
+using DotnetApi.Models;
+using AutoMapper;
 
 namespace DotnetApi.Controllers;
 
@@ -17,9 +18,18 @@ public class AuthController : ControllerBase
 {
     private readonly DataContextDapper _dapper;
     private readonly AuthHelper _authHelper;
+    private readonly ReusableSql _reusableSQL;
+    private readonly IMapper _mapper;
 
     public AuthController(IConfiguration config)
     {
+        _mapper = new Mapper(
+            new MapperConfiguration(config =>
+            {
+                config.CreateMap<UserForRegistrationDto, UserComplete>();
+            })
+        );
+        _reusableSQL = new(config);
         _dapper = new(config);
         _authHelper = new(config);
     }
@@ -57,26 +67,10 @@ public class AuthController : ControllerBase
             throw new Exception("Unable to register user at this time");
         }
 
-        string sqlAddUser =
-            @"EXEC TutorialAppSchema.spUser_Upsert
-                            @FirstName = '"
-            + userForRegistration.FirstName
-            + "', @LastName = '"
-            + userForRegistration.LastName
-            + "', @Email = '"
-            + userForRegistration.Email
-            + "', @Gender = '"
-            + userForRegistration.Gender
-            + "', @Active = 1"
-            + ", @JobTitle = '"
-            + userForRegistration.JobTitle
-            + "', @Department = '"
-            + userForRegistration.Department
-            + "', @Salary = '"
-            + userForRegistration.Salary
-            + "'";
+        UserComplete userComplete = _mapper.Map<UserComplete>(userForRegistration);
+        userComplete.Active = true;
 
-        if (!_dapper.ExecuteSql(sqlAddUser))
+        if (!_reusableSQL.UpsertUser(userComplete))
         {
             return StatusCode(423, "Failed to add user");
         }
@@ -104,11 +98,8 @@ public class AuthController : ControllerBase
             @"EXEC TutorialAppSchema.spLoginConfirmation_Get
                 @Email = @EmailParam";
 
-        List<SqlParameter> sqlParameters = new();
-
-        SqlParameter EmailParameter =
-            new("@EmailParam", SqlDbType.VarChar) { Value = userForLogin.Email };
-        sqlParameters.Add(EmailParameter);
+        DynamicParameters sqlParameters = new();
+        sqlParameters.Add("@EmailParam", userForLogin.Email, DbType.String);
 
         UserForLoginConfirmationDto userForLoginConfirmation =
             _dapper.LoadSingleDataWithParameters<UserForLoginConfirmationDto>(
