@@ -1,2 +1,2 @@
 # ignore ALL files in ANY directory named temp
-.azure
+.azure/config
